@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Gossip Girl X</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--ink:#111;--panel:#111827;--magenta:#e21f6b}
+    body{font-family: Jost, system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial; background:#0b0b0b;color:#fff;margin:0;padding:0}
+    header{padding:24px;text-align:center}
+    .container{max-width:900px;margin:24px auto;padding:16px}
+    .panel{background:rgba(255,255,255,0.04);padding:16px;border-radius:10px}
+    .posts{margin-top:16px}
+    .post{padding:12px;border-bottom:1px solid rgba(255,255,255,0.04)}
+    .meta{font-size:13px;opacity:0.8}
+    .controls{display:flex;gap:8px;align-items:center}
+    input,textarea{width:100%;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#fff}
+    button{background:var(--magenta);color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
+    .small{font-size:13px;opacity:0.9}
+    .right{float:right}
+    nav{display:flex;justify-content:space-between;align-items:center}
+    .login-area{display:flex;gap:8px}
+    /* simple responsive */
+    @media(max-width:640px){.controls{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Gossip Girl X</h1>
+    <nav class="container">
+      <div class="small">Community posts — public</div>
+      <div class="login-area">
+        <span id="who" class="small">Not signed in</span>
+        <button id="btn-login">Log in</button>
+        <button id="btn-logout" style="display:none">Log out</button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h2>Create post</h2>
+      <div id="auth-warning" class="small" style="color:#ffb6c1">You must be signed in to post.</div>
+      <form id="post-form" style="display:none">
+        <input id="post-title" placeholder="Title" required>
+        <textarea id="post-content" rows="6" placeholder="Write your post..." required></textarea>
+        <div class="controls">
+          <div class="small">Signed in as <strong id="current-user"></strong></div>
+          <div style="flex:1"></div>
+          <button type="submit">Publish</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel posts" id="posts">
+      <h2>Posts</h2>
+      <div id="posts-list">Loading…</div>
+    </section>
+
+  </main>
+
+  <!-- Login modal (simple) -->
+  <div id="login-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center">
+    <div style="background:#0b0b0b;padding:20px;border-radius:10px;max-width:420px;margin:auto" class="panel">
+      <h3>Sign in</h3>
+      <form id="login-form">
+        <input id="login-username" placeholder="Username" required>
+        <input id="login-password" type="password" placeholder="Password" required>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="submit">Sign in</button>
+          <button id="login-cancel" type="button">Cancel</button>
+        </div>
+        <div class="small" style="margin-top:8px;color:#ffdede">If you are the site owner and no account exists, you'll be prompted to create one. Accounts are stored locally unless you connect a real backend.</div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/auth.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
