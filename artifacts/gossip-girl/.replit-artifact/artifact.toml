@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "Gossip Girl Blog"
+version = "1.0.0"
+id = "artifacts/gossip-girl"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22621
+
+[services.development]
+run = "pnpm --filter @workspace/gossip-girl run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/gossip-girl", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/gossip-girl/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22621"
+BASE_PATH = "/"
