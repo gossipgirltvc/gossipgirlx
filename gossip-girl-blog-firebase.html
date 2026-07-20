@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Gossip Girl Blog (Firebase)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --ink:#f3ece2;
+      --ink-dim:#c9bcc7;
+      --panel:rgba(20,14,22,0.72);
+      --panel-hair:rgba(255,255,255,0.14);
+      --magenta:#e21f6b;
+      --gold:#e8cd6d;
+      --bg:#0b0710;
+    }
+    *{box-sizing:border-box}
+    body{font-family: Jost, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; background:linear-gradient(180deg, rgba(6,3,8,.55) 0%, rgba(6,3,8,.92) 100%); color:var(--ink); margin:0; padding:24px}
+    .container{max-width:900px;margin:0 auto}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{font-family: 'Cormorant Garamond', serif;margin:0}
+    .card{background:var(--panel);padding:16px;border-radius:10px;margin-bottom:16px}
+    .login-form, .post-form{display:flex;gap:8px;align-items:center}
+    .login-form input, .post-form textarea, .post-form input{padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:var(--ink);width:100%}
+    button{background:var(--magenta);color:white;padding:8px 12px;border-radius:6px;border:0;cursor:pointer}
+    #posts{margin-top:12px}
+    .post{background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;margin-bottom:8px}
+    .meta{font-size:12px;color:var(--ink-dim);margin-bottom:8px}
+    .hidden{display:none}
+    footer{color:var(--ink-dim);font-size:13px;margin-top:24px}
+    .right{display:flex;gap:8px;align-items:center}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Gossip Girl Blog</h1>
+      <div class="right">
+        <div id="user-info" class="hidden card">
+          <span id="display-name"></span>
+          <button id="logoutBtn">Log out</button>
+        </div>
+        <div id="auth-ui" class="card">
+          <form id="loginForm" class="login-form">
+            <input id="email" type="email" placeholder="Email" required>
+            <input id="password" type="password" placeholder="Password" required>
+            <button id="loginBtn" type="submit">Log in</button>
+            <button id="signupBtn" type="button">Sign up</button>
+          </form>
+        </div>
+      </div>
+    </header>
+
+    <section id="createPostSection" class="card hidden">
+      <form id="postForm" class="post-form">
+        <textarea id="postContent" rows="3" placeholder="Write your post..." required></textarea>
+        <input id="postImage" type="file" accept="image/*" class="hidden">
+        <button type="submit">Post</button>
+      </form>
+    </section>
+
+    <section id="posts" class="container">
+      <!-- posts will be injected here -->
+    </section>
+
+    <footer>
+      <div>Powered by Firebase — passwords are not stored in the HTML; authentication is handled by Firebase Auth.</div>
+    </footer>
+  </div>
+
+  <!-- Firebase SDKs (compat for simpler migration) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <script>
+    // TODO: Replace with your Firebase project config. THIS OBJECT IS PUBLIC in client apps — do not put any private server-only secrets here.
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // Elements
+    const loginForm = document.getElementById('loginForm');
+    const emailEl = document.getElementById('email');
+    const passwordEl = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userInfo = document.getElementById('user-info');
+    const displayNameEl = document.getElementById('display-name');
+    const createPostSection = document.getElementById('createPostSection');
+    const postForm = document.getElementById('postForm');
+    const postContent = document.getElementById('postContent');
+    const postsEl = document.getElementById('posts');
+
+    // Auth handlers
+    signupBtn.addEventListener('click', async () => {
+      const email = emailEl.value.trim();
+      const password = passwordEl.value;
+      if(!email || !password) return alert('Enter email + password');
+      try{
+        const userCred = await auth.createUserWithEmailAndPassword(email,password);
+        // Optionally set display name from email prefix
+        const displayName = email.split('@')[0];
+        await userCred.user.updateProfile({displayName});
+      }catch(e){
+        alert(e.message);
+      }
+    });
+
+    loginForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const email = emailEl.value.trim();
+      const password = passwordEl.value;
+      try{
+        await auth.signInWithEmailAndPassword(email,password);
+      }catch(e){
+        alert(e.message);
+      }
+    });
+
+    logoutBtn.addEventListener('click', ()=>auth.signOut());
+
+    // Show/hide UI based on auth state
+    auth.onAuthStateChanged(user=>{
+      if(user){
+        userInfo.classList.remove('hidden');
+        createPostSection.classList.remove('hidden');
+        document.getElementById('auth-ui').classList.add('hidden');
+        displayNameEl.textContent = user.displayName || user.email;
+      }else{
+        userInfo.classList.add('hidden');
+        createPostSection.classList.add('hidden');
+        document.getElementById('auth-ui').classList.remove('hidden');
+        postsEl.innerHTML = ''; // we'll still show posts (we read them below)
+      }
+    });
+
+    // Posting
+    postForm.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const content = postContent.value.trim();
+      if(!content) return;
+      const user = auth.currentUser;
+      if(!user) return alert('Please log in');
+
+      try{
+        await db.collection('posts').add({
+          uid: user.uid,
+          author: user.displayName || user.email,
+          content,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        postContent.value = '';
+      }catch(err){
+        console.error(err); alert('Failed to post: '+err.message)
+      }
+    });
+
+    // Real-time posts listener
+    db.collection('posts').orderBy('createdAt','desc').onSnapshot(snapshot=>{
+      postsEl.innerHTML = '';
+      snapshot.forEach(doc=>{
+        const data = doc.data();
+        const div = document.createElement('div');
+        div.className = 'post card';
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        const date = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString() : '';
+        meta.textContent = (data.author?data.author:'Anonymous') + (date?(' • '+date):'');
+        const body = document.createElement('div');
+        body.textContent = data.content;
+        div.appendChild(meta);
+        div.appendChild(body);
+        // If the current user is the owner we can show edit/delete buttons (optional)
+        if(auth.currentUser && data.uid === auth.currentUser.uid){
+          const btn = document.createElement('button');
+          btn.textContent = 'Delete';
+          btn.style.marginLeft='8px';
+          btn.addEventListener('click', ()=>db.collection('posts').doc(doc.id).delete());
+          div.appendChild(btn);
+        }
+        postsEl.appendChild(div);
+      });
+    }, err=>{
+      console.error('posts listener failed',err);
+    });
+
+    // Security note shown to developer in console
+    console.log('Firebase initialized. Replace firebaseConfig object with your project config. Set Firestore rules and enable Email/Password authentication.');
+  </script>
+</body>
+</html>
