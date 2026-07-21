@@ -1,26 +1,37 @@
-import { useState } from 'react';
-import { useGetMe, useListPosts, useLogout, useDeletePost, getGetMeQueryKey, getListPostsQueryKey } from '@workspace/api-client-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  useGetMe,
+  useListPosts,
+  useLogout,
+  useDeletePost,
+  getGetMeQueryKey,
+  getListPostsQueryKey,
+} from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoginModal } from '@/components/login-modal';
 import { CreatePostModal } from '@/components/create-post-modal';
-import { PostCard } from '@/components/post-card';
-import { Button } from '@/components/ui/button';
-import { Home as HomeIcon, List, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
+
+function fmtDate(ts: number): string {
+  const d = new Date(ts);
+  return d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
 
 export default function Home() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  
   const queryClient = useQueryClient();
-  const { data: authStatus, isLoading: authLoading } = useGetMe({ 
-    query: { queryKey: getGetMeQueryKey() } 
-  });
-  const { data: posts, isLoading: postsLoading } = useListPosts({ 
-    query: { queryKey: getListPostsQueryKey() } 
-  });
-  
+
+  const { data: authStatus } = useGetMe({ query: { queryKey: getGetMeQueryKey() } });
+  const { data: posts, isLoading: postsLoading } = useListPosts({ query: { queryKey: getListPostsQueryKey() } });
   const logout = useLogout();
   const deletePost = useDeletePost();
+
+  const isLoggedIn = authStatus?.loggedIn ?? false;
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -31,195 +42,146 @@ export default function Home() {
     });
   };
 
-  const handleDeletePost = (id: number) => {
-    deletePost.mutate(
-      { id },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
-        },
-      }
-    );
+  const handleDelete = (id: number) => {
+    deletePost.mutate({ id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListPostsQueryKey() });
+      },
+    });
   };
-
-  const isLoggedIn = authStatus?.loggedIn || false;
 
   return (
     <>
-      <div className="min-h-[100dvh] bg-[#1a0e24] text-[#f0e8dc]">
-        {/* Top bar */}
-        <div className="fixed top-0 right-0 z-50 p-4 flex items-center gap-3">
-          {isLoggedIn ? (
-            <>
-              <span className="text-[#9b8fa5] text-sm" data-testid="text-signed-in">Signed in</span>
-              <Button
-                onClick={() => setCreateOpen(true)}
-                className="bg-[#e21f6b] hover:bg-[#c41a5c] text-[#f0e8dc] font-medium px-4 py-2 transition-all hover:magenta-glow"
-                data-testid="button-create"
-              >
-                Create
-              </Button>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                className="border-[#e8cd6d] text-[#e8cd6d] hover:bg-[#e8cd6d]/10 font-medium px-4 py-2 transition-all"
-                data-testid="button-logout"
-              >
-                Logout
-              </Button>
-            </>
-          ) : (
-            <Button
-              onClick={() => setLoginOpen(true)}
-              className="bg-[#e8cd6d] hover:bg-[#d4ba5f] text-[#2a2420] font-semibold px-5 py-2 transition-all"
-              data-testid="button-login"
-            >
-              Login
-            </Button>
-          )}
-        </div>
-
-        {/* Main layout */}
-        <div className="flex flex-col lg:flex-row gap-8 max-w-[1400px] mx-auto px-6 py-12">
-          {/* Left sidebar - vertical nav blocks */}
-          <aside className="lg:w-[200px] flex lg:flex-col gap-6 flex-wrap lg:flex-nowrap" data-testid="sidebar-left">
-            <div className="space-y-2">
-              <h3 className="text-[#4fd8e8] text-sm lowercase font-semibold tracking-wide">
-                welcome
-              </h3>
-              <p className="text-[#9b8fa5] text-xs leading-relaxed">
-                The secret lives of Manhattan's elite
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-[#e21f6b] text-sm lowercase font-semibold tracking-wide">
-                gossip
-              </h3>
-              <p className="text-[#9b8fa5] text-xs leading-relaxed">
-                Who's dating who? Who's fighting?
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-[#7ed957] text-sm lowercase font-semibold tracking-wide">
-                pics
-              </h3>
-              <p className="text-[#9b8fa5] text-xs leading-relaxed">
-                Caught on camera
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-[#ff8a3d] text-sm lowercase font-semibold tracking-wide">
-                parties
-              </h3>
-              <p className="text-[#9b8fa5] text-xs leading-relaxed">
-                Where the action is
-              </p>
-            </div>
-            
-            <div className="space-y-2">
-              <h3 className="text-[#5c8dff] text-sm lowercase font-semibold tracking-wide">
-                links
-              </h3>
-              <p className="text-[#9b8fa5] text-xs leading-relaxed">
-                Around the web
-              </p>
-            </div>
-          </aside>
-
-          {/* Center feed */}
-          <main className="flex-1 max-w-[700px] mx-auto lg:mx-0" data-testid="main-feed">
-            {/* Header */}
-            <header className="mb-12 text-center">
-              <h1 
-                className="text-[#e8cd6d] font-bold tracking-tight gold-glow mb-2"
-                style={{ fontSize: '64px', lineHeight: '1.1' }}
-                data-testid="text-title"
-              >
-                GOSSIP GIRL
-              </h1>
-              <p 
-                className="text-[#9b8fa5] uppercase tracking-[0.3em] text-xs mb-6"
-                data-testid="text-tagline"
-              >
-                you know you love me
-              </p>
-              <p className="text-[#f0e8dc] text-base" data-testid="text-catchphrase">
-                Spotted: <b className="text-[#e8cd6d]">someone</b> reading this. XOXO.
-              </p>
-            </header>
-
-            {/* Posts feed */}
-            <div className="space-y-8">
-              {postsLoading ? (
-                <div 
-                  className="bg-[#faf7f2] rounded-[10px] p-8 text-center text-[#2a2420]"
-                  data-testid="text-loading"
-                >
-                  Loading the latest tips...
-                </div>
-              ) : !posts || posts.length === 0 ? (
-                <div 
-                  className="bg-[#faf7f2] rounded-[10px] p-8 text-center text-[#2a2420]"
-                  data-testid="text-empty"
-                >
-                  No tips yet. The city is quiet... for now.
-                </div>
-              ) : (
-                posts
-                  .slice()
-                  .sort((a, b) => b.timestamp - a.timestamp)
-                  .map((post) => (
-                    <PostCard
-                      key={post.id}
-                      post={post}
-                      canDelete={isLoggedIn}
-                      onDelete={handleDeletePost}
-                    />
-                  ))
-              )}
-            </div>
-          </main>
-
-          {/* Right sidebar - icon nav */}
-          <aside className="lg:w-[120px] flex lg:flex-col gap-4 justify-center lg:justify-start" data-testid="sidebar-right">
-            <button
-              className="w-16 h-16 rounded-full border-2 border-[#e8cd6d] flex items-center justify-center transition-all hover:border-[#e21f6b] hover:magenta-glow"
-              style={{ background: 'radial-gradient(circle, #2e1f38 0%, #1a0e24 100%)' }}
-              data-testid="button-nav-home"
-            >
-              <HomeIcon className="w-6 h-6 text-[#e8cd6d]" />
-            </button>
-            
-            <button
-              className="w-16 h-16 rounded-full border-2 border-[#e8cd6d] flex items-center justify-center transition-all hover:border-[#e21f6b] hover:magenta-glow"
-              style={{ background: 'radial-gradient(circle, #2e1f38 0%, #1a0e24 100%)' }}
-              data-testid="button-nav-posts"
-            >
-              <List className="w-6 h-6 text-[#e8cd6d]" />
-            </button>
-            
-            <button
-              className="w-16 h-16 rounded-full border-2 border-[#e8cd6d] flex items-center justify-center transition-all hover:border-[#e21f6b] hover:magenta-glow"
-              style={{ background: 'radial-gradient(circle, #2e1f38 0%, #1a0e24 100%)' }}
-              data-testid="button-nav-pics"
-            >
-              <ImageIcon className="w-6 h-6 text-[#e8cd6d]" />
-            </button>
-            
-            <button
-              className="w-16 h-16 rounded-full border-2 border-[#e8cd6d] flex items-center justify-center transition-all hover:border-[#e21f6b] hover:magenta-glow"
-              style={{ background: 'radial-gradient(circle, #2e1f38 0%, #1a0e24 100%)' }}
-              data-testid="button-nav-links"
-            >
-              <LinkIcon className="w-6 h-6 text-[#e8cd6d]" />
-            </button>
-          </aside>
-        </div>
+      {/* TOP BAR */}
+      <div className="topbar" id="topbar">
+        {isLoggedIn ? (
+          <>
+            <span className="who">Signed in</span>
+            <button className="pill-btn primary" onClick={() => setCreateOpen(true)}>Create</button>
+            <button className="pill-btn" onClick={handleLogout}>Logout</button>
+          </>
+        ) : (
+          <button className="pill-btn" onClick={() => setLoginOpen(true)}>Login</button>
+        )}
       </div>
 
+      {/* PAGE GRID */}
+      <div className="page">
+
+        {/* LEFT SIDEBAR */}
+        <aside className="side-left">
+          <div className="nav-block welcome">
+            <h3>welcome</h3>
+            <p>to Gossip Girl. The site ABOUT the Upper East Side, FOR the Upper East Side, and BY the Upper East Side.</p>
+          </div>
+          <div className="nav-block gossip">
+            <h3>gossip</h3>
+            <p>The latest &ldquo;411&rdquo; on all the in people.</p>
+          </div>
+          <div className="nav-block pics">
+            <h3>pics</h3>
+            <p>See what the fashionistas of the UES are wearing.<br /><a href="#">current photo gallery</a></p>
+          </div>
+          <div className="nav-block parties">
+            <h3>parties</h3>
+            <p>Your invitation was probably lost in the mail.<br /><a href="#">click here</a> to see what you missed.</p>
+          </div>
+          <div className="nav-block links">
+            <h3>links</h3>
+            <p>Every site worth stalking, all in one place.</p>
+          </div>
+        </aside>
+
+        {/* CENTER FEED */}
+        <main className="center wrap">
+          <header>
+            <img className="logo-img" src="/logo.png" alt="gossip girl" />
+          </header>
+
+          <div className="feed">
+            {postsLoading ? (
+              <div className="loading">Loading the latest tips&hellip;</div>
+            ) : !posts || posts.length === 0 ? (
+              <div className="empty">
+                No tips yet. <b>The city is quiet</b>&hellip; for now.
+              </div>
+            ) : (
+              posts.map((post) => (
+                <article className="post" key={post.id}>
+                  {isLoggedIn && (
+                    <button
+                      className="post-delete"
+                      onClick={() => handleDelete(post.id)}
+                      title="Delete post"
+                    >
+                      ✕
+                    </button>
+                  )}
+                  {post.photoUrl && (
+                    <img
+                      className="post-img"
+                      src={post.photoUrl}
+                      alt=""
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  )}
+                  <div className="post-body">
+                    <div className="post-meta">
+                      <span>Spotted</span>
+                      <span>{fmtDate(post.timestamp)}</span>
+                    </div>
+                    <div className="post-text">{post.text}</div>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+
+          <footer>xoxo, gossip girl</footer>
+        </main>
+
+        {/* RIGHT CIRCLE NAV */}
+        <aside className="side-right">
+          <button className="circle-nav">
+            <span className="circle">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" />
+              </svg>
+            </span>
+            <span>home</span>
+          </button>
+          <button className="circle-nav">
+            <span className="circle">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 5h16M4 12h16M4 19h10" />
+              </svg>
+            </span>
+            <span>posts</span>
+          </button>
+          <button className="circle-nav">
+            <span className="circle">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="1.5" />
+                <circle cx="9" cy="10" r="2" />
+                <path d="M21 16l-5-5-9 9" />
+              </svg>
+            </span>
+            <span>pics</span>
+          </button>
+          <button className="circle-nav">
+            <span className="circle">
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a4 4 0 005.66 0l3-3a4 4 0 10-5.66-5.66l-1.5 1.5" />
+                <path d="M14 11a4 4 0 00-5.66 0l-3 3a4 4 0 105.66 5.66l1.5-1.5" />
+              </svg>
+            </span>
+            <span>links</span>
+          </button>
+        </aside>
+
+      </div>
+
+      {/* MODALS */}
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
       <CreatePostModal open={createOpen} onOpenChange={setCreateOpen} />
     </>
